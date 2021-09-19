@@ -35,25 +35,26 @@ class SWEEncoder_ja:
             content = content.replace('<BLOCK><BLOCK>', '<BLOCK>')
         return content
 
-    def encode(self, text, clean=False):
-        text = text.replace(' ', '<SP>')
-        text = text.replace('　', '<SP>')
-        text = text.replace('\r\n', '<BR>')
-        text = text.replace('\n', '<BR>')
-        text = text.replace('\r', '<BR>')
-        text = text.replace('\t', '<TAB>')
-        text = text.replace('—', 'ー')
-        text = text.replace('−', 'ー')
+    def encode(self, words, clean=False):
+        words = words.replace(' ', '<SP>')
+        words = words.replace('　', '<SP>')
+        words = words.replace('\r\n', '<BR>')
+        words = words.replace('\n', '<BR>')
+        words = words.replace('\r', '<BR>')
+        words = words.replace('\t', '<TAB>')
+        words = words.replace('—', 'ー')
+        words = words.replace('−', 'ー')
         for k,v in self.emoji['emoji'].items():
-            if k in text:
-                text = text.replace(k, v)
+            if k in words:
+                words = words.replace(k, v)
         if clean:
-            text = self.clean_text(text)
+            words = self.clean_words(words)
         def checkkigou(x):
             e = x.encode()
             if len(x) == 1 and len(e)==2:
                 c = (int(e[0])<<8)+int(e[1])
-                if (c >= 0xc2a1 and c <= 0xc2bf) or (c >= 0xc780 and c <= 0xc783) or (c >= 0xcab9 and c <= 0xcbbf) or (c >= 0xcc80 and c <= 0xcda2):
+                if (c >= 0xc2a1 and c <= 0xc2bf) or (c >= 0xc780 and c <= 0xc783) or \
+                   (c >= 0xcab9 and c <= 0xcbbf) or (c >= 0xcc80 and c <= 0xcda2):
                     return True
             return False
         def checku2e(x):
@@ -65,20 +66,24 @@ class SWEEncoder_ja:
             return False
         pos = 0
         result = []
-        while pos < len(text):
+        while pos < len(words):
             end = min(len(text), pos+self.maxlen+1) if text[pos]=='<' else pos+3
             kouho = []
             for e in range(end, pos, -1):
-                wd = text[pos:e]
+                wd = words[pos:e]
                 if wd in self.swe:
-                    kouho.append((self.swe[wd], e))
+                    if wd[0]=='<' and len(wd) > 2:
+                        kouho = [(self.swe[wd], e)]
+                        break
+                    else:
+                        kouho.append((self.swe[wd], e))
             if len(kouho) > 0:
                 wp,e = sorted(kouho, key=lambda x:x[0])[0]
                 result.append(wp)
                 pos = e
             else:
                 end = pos+1
-                wd = text[pos:end]
+                wd = words[pos:end]
                 if checkkigou(wd):
                     result.append(self.swe['<KIGOU>'])
                 elif checku2e(wd):
