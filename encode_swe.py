@@ -35,20 +35,20 @@ class SWEEncoder_ja:
             content = content.replace('<BLOCK><BLOCK>', '<BLOCK>')
         return content
 
-    def encode(self, words, clean=False):
-        words = words.replace(' ', '<SP>')
-        words = words.replace('　', '<SP>')
-        words = words.replace('\r\n', '<BR>')
-        words = words.replace('\n', '<BR>')
-        words = words.replace('\r', '<BR>')
-        words = words.replace('\t', '<TAB>')
-        words = words.replace('—', 'ー')
-        words = words.replace('−', 'ー')
+    def encode(self, text, clean=False):
+        text = text.replace(' ', '<SP>')
+        text = text.replace('　', '<SP>')
+        text = text.replace('\r\n', '<BR>')
+        text = text.replace('\n', '<BR>')
+        text = text.replace('\r', '<BR>')
+        text = text.replace('\t', '<TAB>')
+        text = text.replace('—', 'ー')
+        text = text.replace('−', 'ー')
         for k,v in self.emoji['emoji'].items():
-            if k in words:
-                words = words.replace(k, v)
+            if k in text:
+                text = text.replace(k, v)
         if clean:
-            words = self.clean_words(words)
+            text = self.clean_text(text)
         def checkkigou(x):
             e = x.encode()
             if len(x) == 1 and len(e)==2:
@@ -66,11 +66,11 @@ class SWEEncoder_ja:
             return False
         pos = 0
         result = []
-        while pos < len(words):
+        while pos < len(text):
             end = min(len(text), pos+self.maxlen+1) if text[pos]=='<' else pos+3
             kouho = []
             for e in range(end, pos, -1):
-                wd = words[pos:e]
+                wd = text[pos:e]
                 if wd in self.swe:
                     if wd[0]=='<' and len(wd) > 2:
                         kouho = [(self.swe[wd], e)]
@@ -83,7 +83,7 @@ class SWEEncoder_ja:
                 pos = e
             else:
                 end = pos+1
-                wd = words[pos:end]
+                wd = text[pos:end]
                 if checkkigou(wd):
                     result.append(self.swe['<KIGOU>'])
                 elif checku2e(wd):
