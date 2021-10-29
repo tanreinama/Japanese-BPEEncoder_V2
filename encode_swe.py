@@ -129,19 +129,27 @@ class SWEEncoder_ja:
 
 if __name__=='__main__':
     import argparse
+    import shutil
     import os
     import json
     from tqdm import tqdm
     import pickle
+    import uuid
     from multiprocessing import Pool
     parser = argparse.ArgumentParser()
     parser.add_argument("--src_dir", help="source dir", required=True )
     parser.add_argument("--dst_file", help="destnation file", required=True )
+    parser.add_argument("--tmp_dir", help="tempolary file", default="tmpfiles" )
     parser.add_argument("--vocabulary", help="vocabulary file", default="ja-swe32k.txt" )
     parser.add_argument("--num_process", help="process num", type=int, default=8 )
     parser.add_argument("--combine", help="Concatenate files with <|endoftext|> separator into chunks of this minimum size", type=int, default=50000 )
     parser.add_argument('--clean_text', action='store_true')
+    parser.add_argument("--tmpsilze", help="num chunks in tempolary file", type=int, default=5000 )
     args = parser.parse_args()
+
+    if os.path.isdir(args.tmp_dir):
+        shutil.rmtree(args.tmp_dir)
+    os.mkdir(args.tmp_dir)
 
     with open(args.vocabulary, encoding='utf-8') as f:
         bpe = f.read().split('\n')
@@ -170,7 +178,11 @@ if __name__=='__main__':
             if raw_text and len(raw_text) > 0:
                 tokens = np.stack(enc.encode(raw_text))
                 token_chunks.append(tokens)
-        with open('tmp%d.pkl'%i, 'wb') as f:
+            if len(token_chunks) > args.tmpsilze:
+                with open(os.path.join(args.tmp_dir, '%s.pkl'%str(uuid.uuid4())), 'wb') as f:
+                    pickle.dump(token_chunks, f)
+                    token_chunks = []
+        with open(os.path.join(args.tmp_dir, '%s.pkl'%str(uuid.uuid4())), 'wb') as f:
             pickle.dump(token_chunks, f)
 
     for curDir, dirs, files in os.walk(args.src_dir):
@@ -180,8 +192,9 @@ if __name__=='__main__':
         p.map(_proc, list(range(args.num_process)))
 
     token_chunks = []
-    for i in range(args.num_process):
-        with open('tmp%d.pkl'%i, 'rb') as f:
+    for s in os.listdir(args.tmp_dir):
+        with open(os.path.join(args.tmp_dir, s), 'rb') as f:
             token_chunks.extend(pickle.load(f))
 
     np.savez_compressed(args.dst_file, *token_chunks)
+    shutil.rmtree(args.tmp_dir)
