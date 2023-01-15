@@ -95,7 +95,9 @@ class SWEEncoder_ja:
                 wp,e = s[0]
                 if len(kouho) > 1 and bpe_dropout_rate > 0.0:
                     if np.random.random() > bpe_dropout_rate:
-                        wp,e = s[np.random.choice(np.arange(len(kouho)-1)+1)]
+                        p = np.exp(np.arange(len(kouho)-1))[::-1]
+                        p /= np.sum(p) # Extract tokens from candidates in order of probability
+                        wp,e = s[np.random.choice(np.arange(len(kouho)-1)+1, p=p)]
                 result.append(wp)
                 pos = e
             else:
