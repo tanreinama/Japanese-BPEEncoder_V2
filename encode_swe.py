@@ -35,7 +35,20 @@ class SWEEncoder_ja:
             content = content.replace('<BLOCK><BLOCK>', '<BLOCK>')
         return content
 
-    def encode(self, text, clean=False):
+    def encode(self, text, clean=False, bpe_dropout_rate=0.0):
+        """
+        Inputs:
+          text[str]: input string
+          clean[bool]: cleaning string
+          bpe_dropout_rate[float]:
+            Flags to use when learning model. Whether to use BPE Dropout.
+            The research to divides same word with different BPEs make efficiently learn low-frequency words.
+            It is concluded that setting a value of 0.1 during learning is good.
+            https://arxiv.org/abs/1911.03864
+            https://ai-scholar.tech/articles/natural-language-processing/bpe-dropout
+        Return:
+          tokens[List[int]]
+        """
         text = text.replace(' ', '<SP>')
         text = text.replace('　', '<SP>')
         text = text.replace('\r\n', '<BR>')
@@ -78,7 +91,11 @@ class SWEEncoder_ja:
                     else:
                         kouho.append((self.swe[wd], e))
             if len(kouho) > 0:
-                wp,e = sorted(kouho, key=lambda x:x[0])[0]
+                s = sorted(kouho, key=lambda x:x[0])
+                wp,e = s[0]
+                if len(kouho) > 1 and bpe_dropout_rate > 0.0:
+                    if np.random.random() > bpe_dropout_rate:
+                        wp,e = s[np.random.choice(np.arange(len(kouho)-1)+1)]
                 result.append(wp)
                 pos = e
             else:
@@ -95,6 +112,13 @@ class SWEEncoder_ja:
         return result
 
     def decode(self, tokens, breakline='\n'):
+        """
+        Inputs:
+          tokens[List[int]]: input tokens
+          breakline[str]: string to replace "<BR>" token
+        Return:
+          decoded text[str]
+        """
         words = []
         byte_tokens = []
         for i in tokens:
