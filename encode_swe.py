@@ -44,7 +44,7 @@ class SWEEncoder_ja:
             Flags to use when learning model. Whether to use BPE Dropout.
             The research to divides same word with different BPEs make efficiently learn low-frequency words.
             It is concluded that setting a value of 0.1 during learning is good.
-            https://arxiv.org/abs/1911.03864
+            https://arxiv.org/abs/1910.13267
             https://ai-scholar.tech/articles/natural-language-processing/bpe-dropout
         Return:
           tokens[List[int]]
